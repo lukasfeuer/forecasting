@@ -1,0 +1,176 @@
+---
+title: "Time Series | Case Study"
+author: "Lukas Feuer"
+date: "01.02.2022"
+output: 
+  html_document:
+    theme: readable
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Data Screening 
+
+### Import 
+
+* Convert `month_year` to type `<date>`
+* `year` for convenience, but not used retrospectively
+
+```{r message=FALSE}
+library(tidyverse)
+library(magrittr)
+library(readxl)
+library(fable)
+library(tsibble)
+library(lubridate)
+
+d <- read_excel("UserFile.xlsx") %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    year = str_extract(month_year, "\\d{4}") %>% as.numeric(),
+    date = paste("1", month_year) %>% lubridate::dmy()
+  ) 
+```
+
+### Missing Values
+
+* No explicit missing values:
+```{r}
+d %>% is.na() %>% sum()
+```
+
+* `tsibble::fill_gaps()` to check for incomplete time series (nothing missing)
+* Therefore no implicit missing values 
+* longer format for convenient faceting with `fable::autoplot()`
+
+```{r}
+d_ts <- d %>% 
+  select(-c(year, month_year)) %>% 
+  mutate(
+    date = yearmonth(date)
+  ) %>%
+  tidyr::pivot_longer(cols = contains("group"),
+                      names_to = "group", 
+                      values_to = "value") %>% 
+  as_tsibble(index = date , key = group) %>% 
+  tsibble::fill_gaps() 
+d_ts
+```
+
+
+### Summary Statistics
+
+Min, Max, SD and Mean for every variable as basic summaries (`d`, instead of `d_ts` purely for convenience):
+```{r}
+d %>%
+  select(contains("group")) %>%
+  map_df( ~ tibble(
+    mean = mean(.),
+    sd = sd(.), 
+    min = min(.),
+    max = max(.)
+  )) %>%
+  mutate(group = colnames(select(d, contains("group")))) %>%
+  relocate(group, everything())
+```
+
+Visualize Variables
+```{r}
+p <- d %>% 
+  select(-c(month_year, year)) %>% 
+  pivot_longer(cols = contains("group"),
+               names_to = "group",
+               values_to = "value") %>% 
+  ggplot(aes(date, value)) + 
+  geom_line(aes(group = group, 
+                color = group)) +
+  facet_wrap(~group, 
+             scales = "free", 
+             ncol = 1) + 
+  theme_minimal()+
+  labs(
+    title = "Time Series | Case Study",
+    subtitle = "Analysis of Time Series data collected over the course of six years"
+  )
+plotly::ggplotly(p)
+```
+
+
+
+
+## Decompositions {.tabset}
+
+Trend Seasonal Analysis for all three variables
+--> *seems like markdown does not like `map()` in combination with html-output...*
+```{r eval=FALSE, include=TRUE}
+# The code I used in my original R-script
+ plots <- d %>% 
+   select(contains("group")) %>% 
+   map(ts, frequency = 12, start = c(2016,1)) %>% 
+   tibble(data = .) %>% 
+   mutate(decomp = map(data, ~decompose(., type = c("additive")))) %$% 
+   map(decomp, ~forecast::autoplot(.))
+
+map(plots, plotly::ggplotly)
+```
+### Group 1
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# The code I had to use...
+decomp1 <- d %$% 
+  ts(group_1, frequency = 12, start = c(2016,1)) %>% 
+  decompose(., type = c("additive")) %>% 
+  forecast::autoplot()
+plotly::ggplotly(decomp1)
+```
+### Group 2
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# The code I had to use...
+decomp2 <- d %$% 
+  ts(group_2, frequency = 12, start = c(2016,1)) %>% 
+  decompose(., type = c("additive")) %>% 
+  forecast::autoplot()
+plotly::ggplotly(decomp2)
+```
+### Group 3
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# The code I had to use...
+decomp3 <- d %$% 
+  ts(group_3, frequency = 12, start = c(2016,1)) %>% 
+  decompose(., type = c("additive")) %>% 
+  forecast::autoplot()
+plotly::ggplotly(decomp3)
+```
+
+
+
+## Main Analysis & Prediction
+
+### Simple Moving Average 
+
+Exploratory visualization of four-point moving average and prediction of next four months
+```{r echo=TRUE}
+d %>% 
+  select(contains("group")) %>% 
+  map(., ~ts(., frequency = 12, start = c(2016,1)) %>% 
+  smooth::sma(order=4, h=4,silent=FALSE) )
+```
+
+### Prediction (one year)
+
+```{r}
+d_ts %>% 
+    fabletools::model(
+    ets = ETS(value),
+    arima = ARIMA(value),
+    snaive = SNAIVE(value)
+  ) %>%
+  fabletools::forecast(h = "1 year") %>% 
+  fabletools::autoplot(d_ts)
+
+```
+

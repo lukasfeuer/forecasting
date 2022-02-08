@@ -1,0 +1,943 @@
+---
+title: "R for Data Science | Notes"
+author: "Lukas Feuer"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    theme: paper
+    highlight: pygments
+    toc: yes
+    toc_float: yes
+---
+
+# 1 & 2 | Introduction 
+
+* If the error message isn’t in English, run Sys.setenv(LANGUAGE = "en")
+* The easiest way to include data in a question is to use **dput()** to generate the R code to recreate it. For example, to recreate the mtcars dataset in R, I’d perform the following steps:
+    1. Run dput(mtcars) in R
+    2. Copy the output
+    3. In my reproducible script, type mtcars <- then paste.
+
+# 3 | Visualization 
+* ggplot
+* read later again if needed 
+
+# 4 | Workflow: basics
+* R Basics 
+
+# 5 | Data transformation 
+
+* R either prints out the results, or saves them to a variable. If you want to do both, you can wrap the assignment in parentheses
+
+Verbs for Data Transformation
+    * Pick observations by their values (filter()).
+    * Reorder the rows (arrange()).
+    * Pick variables by their names (select()).
+    * Create new variables with functions of existing variables (mutate()).
+    * Collapse many values down to a single summary (summarise()).
+* These can all be used in conjunction with **group_by()** which changes the scope of each function from operating on the entire dataset to operating on it group-by-group. These six functions provide the verbs for a language of data manipulation.
+* dplyr functions never modify their inputs, so if you want to save the result, you’ll need to use the assignment operator, <-
+* Instead of relying on ==, use near() --> near( sqrt(2)^2 , 2 )
+* & is “and”, | is “or”, and ! is “not” --> also see xor(x,y) --> x or y but not both
+* x %in% y. This will select every row where x is one of the values in y
+* Another useful dplyr filtering helper is between()
+* arrange: Missing values are always sorted at the end
+* rename() is a variant of select() that keeps all the variables that aren’t explicitly mentioned
+* use select() in conjunction with the everything() helper if you have a handful of variables you’d like to move to the start of the data frame: select(flights, dep_time, everything())
+* any_of() in select() to select e.g. cols by variable names stored in vector
+* If you only want to keep the new variables, use transmute()
+* There are many functions for creating new variables that you can use with mutate(). The key property is that the function must be vectorised
+* see **5.5.1** Modular arithmetic: %/% (integer division) and %% (remainder), where x == y * (x %/% y) + (x %% y).
+* log2() easy to interpret: a difference of 1 on the log scale corresponds to doubling on the original scale and a difference of -1 corresponds to halving.
+* a good way to pronounce %>% when reading code is “then”
+
+
+
+# 7 Exploratory Data Analysis 
+
+* ifelse() alternative: case_when() is particularly useful inside mutate when you want to create a new variable that relies on a complex combination of existing variables.
+* ggplot(data = diamonds, mapping = aes(x = price, y = **..density..**)) + 
+  geom_freqpoly(mapping = aes(colour = cut), binwidth = 500)
+* count() for cobination of variables: diamonds %>% 
+  count(color, cut)
+
+# 10 Tibbles
+* Zufalls-Buchstaben: sample(letters, 10, replace = TRUE)
+    --> "letters" scheint immer hinterlegt zu sein
+* Print all Cols: nycflights13::flights %>% 
+     print(n = 10, width = Inf)
+* Default: 
+      * options(tibble.print_max = n, tibble.print_min = m)
+      * options(tibble.width = Inf)
+* Help Package: **package?tibble**
+* Extract Variable: [[ can extract by name or position; [dollarsign] only extracts by name but is a little less typing (with pipe: df %>% .$x)
+* enframe() for data in list format 
+
+# 11 readr
+* notice: readr functions are faster than base R
+* fread is even faster but data.table
+* Parsers:
+    * creating a new locale and setting the decimal_mark argument
+    * parse_number() addresses the second problem: it ignores non-numeric characters before and after the number.
+    * Also see how to parse **date-time**
+    * Every parse_xyz() function has a **corresponding** col_xyz() function
+    * stop_for_problems() will throw an error if there are any parsing problems: this is useful for automated scripts where you want to throw an error as soon as you encounter a problem
+```{r}
+parse_double("1,23", locale = locale(decimal_mark = ","))
+
+parse_number("$100")
+parse_number("It cost $123.45")
+parse_number("123.456.789", locale = locale(grouping_mark = "."))
+
+parse_character("El Ni\xf1o was particularly bad this year", locale = locale(encoding = "Latin1"))
+guess_encoding(charToRaw("El Ni\xf1o was particularly bad this year"))
+
+parse_date("1 Januar 2015", "%d %B %Y", locale = locale("de"))
+
+challenge <- read_csv(
+  readr_example("challenge.csv"), 
+  col_types = cols(
+    x = col_double(),
+    y = col_logical() # change to col_date()
+  )
+)
+problems(challenge)
+```
+
+* Sometimes it’s easier to diagnose problems if you just read in all the columns as character vectors
+* If you’re having major parsing problems, sometimes it’s easier to just read into a character vector of lines with **read_lines()**, or even a character vector of length 1 with **read_file()**
+```{r}
+challenge2 <- read_csv(readr_example("challenge.csv"), 
+  col_types = cols(.default = col_character())
+)
+# then debug manual or with:
+type_convert(challenge2) # adjust n_max in very large data sets
+```
+
+
+# 13 Relational data
+
+* it’s good practice to verify that they do indeed uniquely identify each observation. One way to do that is to count() the primary keys and look for entries where n is greater than one:
+```{r}
+planes %>% 
+  count(tailnum) %>% 
+  filter(n > 1)
+```
+* Surrogate Key: If a table lacks a primary key, it’s sometimes useful to add one with mutate() and row_number()
+* inner_join() by: named character vector: by = c("a" = "b"). This will match variable a in table x to variable b in table y. The variables from x will be used in the output
+
+
+# 14 Strings (need to read it again!)
+
+&#8594; stringi Package for even more comprehensive functions than the following stringr functions 
+
+* the printed representation of a string is not the same as string itself, because the printed representation shows the escapes
+* To see the raw contents of the string, use writeLines()
+* special characters: complete list by requesting help on " &#8594; ?"'"
+* **if** inside str_c:
+```{r}
+name <- "Hadley"
+time_of_day <- "morning"
+birthday <- FALSE
+
+str_c(
+  "Good ", time_of_day, " ", name,
+  if (birthday) " and HAPPY BIRTHDAY",
+  "."
+)
+```
+
+* note the differences in handling **NA** between *str_c* and *paste/past0* 
+* if precedence ever gets confusing, use parentheses to make it clear what you want:
+```{r}
+str_view(c("grey", "gray"), "gr(e|a)y")
+```
+
+A character class containing a single character is a nice alternative to backslash escapes when you want to include a single metacharacter in a regex.
+```{r}
+# Look for a literal character that normally has special meaning in a regex
+str_view(c("abc", "a.c", "a*c", "a c"), "a[.]c")
+```
+
+
+##Repetition:
+
+* ?: 0 or 1
+* +: 1 or more
+* *: 0 or more
+&#8594; *Note that the precedence of these operators is high, so you can write: colou?r to match either American or British spellings. *
+
+You can also specify the number of matches precisely:
+
+* {n}: exactly n
+* {n,}: n or more
+* {,m}: at most m
+* {n,m}: between n and m
+&#8594; *By default these matches are “greedy”: they will match the longest string possible. You can make them “lazy”, matching the shortest string possible by putting a ? after them.* 
+
+Parentheses also create a numbered capturing group (here repeated pattern of two symbols)
+```{r}
+str_view(fruit, "(..)\\1", match = TRUE)
+# read as: "(..)\\1" --> two symbol pattern repeating itself 
+#          "(.)\\1" --> one symbol repeating itself 
+#          "(...)\\1" --> three symbol pattern repeating itself 
+```
+&#8594; You can refer to the same text as previously matched by a capturing group with backreferences, like \1, \2 etc. &#8594; "(.)(.)\\2\\1" look for a (four part) pattern, where: match any character and another (any) character, then the second match and then the first one 
+
+Typically, however, your strings will be one column of a data frame, and you’ll want to use filter instead:
+```{r}
+df %>% 
+  filter(str_detect(word, "x$"))
+```
+
+Defining a “word” in a regular expression is a little tricky, so here I use a simple approximation: a sequence of at least one character that isn’t a space.
+```{r}
+# find any word after a noun 
+noun <- "(a|the) ([^ ]+)"
+
+# change the second and third word in a sentence around
+sentences %>% 
+  str_replace("([^ ]+) ([^ ]+) ([^ ]+)", "\\1 \\3 \\2")
+```
+
+**Ignore case** (when you use a pattern that’s a string, it’s automatically wrapped into a call to regex()): 
+```{r}
+str_view(bananas, regex("banana", ignore_case = TRUE))
+```
+
+fixed(): matches exactly the specified sequence of bytes
+```{r}
+str_view_all(f, fixed("berry"), match = TRUE)
+```
+
+* comments = TRUE allows you to use comments and white space to make complex regular expressions more understandable. Spaces are ignored, as is everything after #. To match a literal space, you’ll need to escape it: "\\ ".
+* apropos() searches all objects available from the global environment.
+* dir() lists all the files in a directory.
+
+
+# 15 Factors 
+
+* keep in mind that many fct_x() functions do not change the levels themselves, but the level-subscripts; e.g. fct_rev() does not reorder the data but changes which factor step is associated with wich label (which one is first etc.)
+* ususally used inside mutate or inside ggplot 
+* To combine groups, you can assign multiple old levels to the same new level
+
+
+# 16 Dates and Time
+
+--> read again with factors chapter 
+
+
+# 18 Pipes 
+
+* Four Ways of writing code (concerning number one "save each step in a new object): "You may also worry that this form creates many copies of your data and takes up a lot of memory. Surprisingly, that’s not the case. First, note that proactively worrying about memory is not a useful way to spend your time: worry about it when it becomes a problem (i.e. you run out of memory), not before."
+* When working with more complex pipes, it’s sometimes useful to call a function for its side-effects. Maybe you want to print out the current object, or plot it, or save it to disk. Many times, such functions don’t return anything, effectively terminating the pipe. To work around this problem, you can use the “tee” pipe. **%T>%** works like %>% except that it returns the left-hand side instead of the right-hand side. It’s called “tee” because it’s like a literal T-shaped pipe.
+* **%$%** Is useful when functions do not have a built-in data argument. It “explodes” out the variables in a data frame so that you can refer to them explicitly:
+```{r}
+mtcars %$%
+  cor(disp, mpg)
+#> [1] -0.8475514
+```
+
+
+# 19 Functions (read again!)
+
+* This function takes advantage of the standard return rule: a function returns the last value that it computed. Here that is either one of the two branches of the if statement.
+```{r}
+has_name <- function(x) {
+  nms <- names(x)
+  if (is.null(nms)) {
+    rep(FALSE, length(x))
+  } else {
+    !is.na(nms) & nms != ""
+  }
+}
+```
+
+* Conditional execution: 
+    * The condition must evaluate to either TRUE or FALSE. If it’s a vector, you’ll get a warning message; if it’s an NA, you’ll get an error. Watch out for these messages in your own code
+    * You can use **||** (or) and **&&** (and) to combine multiple **logical expressions**. These operators are “short-circuiting”: as soon as || sees the first TRUE it returns TRUE without computing anything else. As soon as && sees the first FALSE it returns FALSE. You should never use | or & in an if statement: these are vectorised operations that apply to multiple values (that’s why you use them in filter()). If you do have a logical vector, you can use any() or all() to collapse it to a single value.
+    * Be careful when testing for equality. **==** is vectorised, which means that it’s easy to get more than one output. Either check the length is already 1, collapse with all() or any(), or use the non-vectorised **identical()** (very strict; use dplyr::near() for comparisons)
+    * **switch()** function as alternative to if. It allows you to evaluate selected code based on position or name. Another useful function that can often eliminate long chains of if statements is **cut()**
+* Naming **arguments** of a function:
+    * x, y, z: vectors.
+    * w: a vector of weights.
+    * df: a data frame.
+    * i, j: numeric indices (typically rows and columns).
+    * n: length, or number of rows.
+    * p: number of columns.
+* It’s good practice to check important preconditions, and throw an error (with **stop()**), if they are not true:
+```{r}
+wt_mean <- function(x, w) {
+  if (length(x) != length(w)) {
+    stop("`x` and `w` must be the same length", call. = FALSE)
+  }
+  sum(w * x) / sum(w)
+}
+```
+*  A useful compromise is the built-in **stopifnot()**: it checks that each argument is TRUE, and produces a generic error message if not.
+* **...** (pronounced dot-dot-dot). This special argument captures any number of arguments that aren’t otherwise matched. It’s useful because you can then send those ... on to another function. This is a useful catch-all if your function primarily wraps another function.
+```{r}
+rule <- function(..., pad = "-") {
+  title <- paste0(...)
+  width <- getOption("width") - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output")
+#> Important output -----------------------------------------------------------
+```
+* The value returned by the function is usually the last statement it evaluates, but you can choose to return early by using return(). I think it’s best to save the use of return() to signal that you can return early with a simpler solution. A common reason to do this is because the inputs are empty:
+```{r}
+complicated_function <- function(x, y, z) {
+  if (length(x) == 0 || length(y) == 0) {
+    return(0)
+  }
+    
+  # Complicated code here
+}
+```
+* So when using conditional statements in functions it is good style to start with the simple conditions
+
+* Writing pipeable functions: There are two basic types of pipeable functions: transformations and side-effects. 
+    * transformations, an object is passed to the function’s first argument and a modified object is returned
+    * side-effects, the passed object is not transformed. Instead, the function performs an action on the object, like drawing a plot or saving a file. Side-effects functions should “invisibly” return the first argument, so that while they’re not printed they can still be used in a pipeline
+```{r}
+show_missings <- function(df) {
+  n <- sum(is.na(df))
+  cat("Missing values: ", n, "\n", sep = "")
+  
+  invisible(df)
+}
+```
+
+
+# 20 Vectors (read again!)
+
+* There are two types of vectors:
+    * Atomic vectors (logical, integer, double, character, complex, and raw) &#8594; typeof()
+    * Lists
+* NULL is often used to represent the absence of a vector (as opposed to NA which is used to represent the absence of a value in a vector). NULL typically behaves like a vector of length 0
+* Doubles are approximations. Doubles represent floating point numbers that can not always be precisely represented with a fixed amount of memory. This means that you should consider all doubles to be approximations. Most calculations include some approximation error. Instead of comparing floating point numbers using ==, you should use dplyr::near()
+* Test Functions for type of vector from **purrr** (is_*; is_integer() etc.)
+* All types of vectors can be named. You can name them during creation with c() or after the fact with purrr::set_names():
+```{r}
+c(x = 1, y = 2, z = 4)
+set_names(1:3, c("a", "b", "c"))
+```
+* There is an important variation of **[** called **[[**. [[ only ever extracts a single element of a vector, and always drops names. It’s a good idea to use it whenever you want to make it clear that you’re extracting a single item, as in a for loop. The distinction between [ and [[ is most important for lists
+* Subsetting lists:
+    * [ extracts a sub-list. The result will always be a list.
+    * [[ extracts a single component from a list. It removes a level of hierarchy from the list. &#8594; *The distinction between [ and [[ is really important for lists, because [[ drills down into the list while [ returns a new, smaller list.*
+    * $ is a shorthand for extracting named elements of a list. It works similarly to [[ except that you don’t need to use quotes.
+* **Attributes**: Any vector can contain arbitrary additional metadata through its attributes. You can think of attributes as named list of vectors that can be attached to any object. 
+    * get and set individual attribute values with **attr()**
+    * see all at once with **attributes()**
+```{r}
+x <- 1:10
+attr(x, "greeting") <- "Hi!"
+attr(x, "farewell") <- "Bye!"
+attributes(x)
+```
+* There are three very important attributes that are used to implement fundamental parts of R:
+    * Names are used to name the elements of a vector.
+    * Dimensions (dims, for short) make a vector behave like a matrix or array.
+    * Class is used to implement the S3 object oriented system. *(focus on class in following section)*
+* Class controls how generic functions work. Generic functions are key to object oriented programming in R, because they make functions behave differently for different classes of input.
+    * The call to “UseMethod” means that this is a generic function, and it will call a specific method, a function, based on the class of the first argument. (All methods are functions; not all functions are methods). 
+    * List all the methods for a generic with methods()
+    * See the specific implementation of a method with getS3method()
+```{r}
+as.Date
+methods("as.Date")
+getS3method("as.Date", "default")
+```
+
+
+# 21 Iteration (read again!)
+
+* **For-Loops**
+    * Before you start the loop, you must always allocate sufficient space for the output. This is very important for efficiency: if you grow the for loop at each iteration using c() (for example), your for *loop will be very slow*.
+        * In technical terms you get “quadratic” behaviour which means that a loop with three times as many elements would take nine times as long to run.
+        * A better solution to save the results in a **list**, and then combine into a single vector after the loop is done
+    * **seq_along()** is a safe version of the familiar 1:length(l). Think about a data frame as a list of columns, iterate over each column with seq_along(df)
+    * There are four variations on the basic theme of the for loop:
+      * Modifying an existing object, instead of creating a new object.
+      * Looping over names or values, instead of indices.
+      * Handling outputs of unknown length.
+      * Handling sequences of unknown length.
+* **While-Loops**: Sometimes you don’t even know how long the input sequence should run for. This is common when doing simulations. For example, you might want to loop until you get three heads in a row:
+```{r}
+flip <- function() sample(c("T", "H"), 1)
+
+flips <- 0
+nheads <- 0
+
+while (nheads < 3) {
+  if (flip() == "H") {
+    nheads <- nheads + 1
+  } else {
+    nheads <- 0
+  }
+  flips <- flips + 1
+}
+flips
+#> [1] 21
+```
+
+* Pass a function to a function:
+```{r}
+col_summary <- function(df, fun) {
+  out <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+col_summary(df, median)
+col_summary(df, mean)
+```
+
+## purrr
+
+* Each function takes a vector as input, applies a function to each piece, and then returns a new vector that’s the *same length* (and has the same names) as the input. 
+* The type of the vector is determined by the suffix to the map function (map returns a list).
+* same prolem as above:
+```{r}
+map_dbl(df, mean)
+map_dbl(df, median)
+map_dbl(df, sd)
+```
+
+* The second argument, .f, the function to apply, can be a formula, a character vector, or an integer vector. You’ll learn about those handy shortcuts in the next section.
+* map_*() uses … ([dot dot dot]) to pass along additional arguments to .f each time it’s called (map_dbl(df, mean, na.rm = TRUE))
+* The syntax for creating an anonymous function in R is quite verbose so purrr provides a convenient shortcut: a one-sided formula.
+    
+```{r}
+models <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(~lm(mpg ~ wt, data = .))
+```
+&#8594; Here I’ve used `.` as a pronoun: it refers to the *current list element* (in the same way that i referred to the current index in the for loop).
+
+* Extract components:
+```{r}
+# by shorthand anonymous function
+models %>% 
+  map(summary) %>% 
+  map_dbl(~.$r.squared)
+# by name
+models %>% 
+  map(summary) %>% 
+  map_dbl("r.squared")
+# by position
+x <- list(list(1, 2, 3), list(4, 5, 6), list(7, 8, 9))
+x %>% map_dbl(2)
+```
+
+## Save operations
+
+* `safely()` is an adverb (similar to `try()`): it takes a function (a verb) and returns a modified version. In this case, the modified function will never throw an error. Instead, it always returns a list with two elements:
+  1. `result` is the original result. If there was an error, this will be NULL.
+  2. `error` is an error object. If the operation was successful, this will be NULL.
+```{r}
+safe_log <- safely(log)
+str(safe_log(10))
+
+str(safe_log("a"))
+```
+
+* safely() is designed to work with map
+```{r}
+x <- list(1, 10, "a")
+y <- x %>% map(safely(log))
+```
+
+* `possibly()` always succeeds. It’s simpler than safely(), because you give it a default value to return when there is an error.
+```{r}
+x <- list(1, 10, "a")
+x %>% map_dbl(possibly(log, NA_real_))
+# [1] 0.000000 2.302585       NA
+```
+
+* `quietly()` performs a similar role to safely(), but instead of capturing errors, it captures printed output, messages, and warnings:
+
+* `map2()`iterates over **two vectors in parallel**. The arguments that vary for each call come *before* the function; arguments that are the same for every call come *after.*
+```{r}
+mu <- list(5, 10, -3)
+sigma <- list(1, 5, 10)
+map2(mu, sigma, rnorm, n = 5) 
+```
+
+* `pmap()` which takes a list of arguments. If the arguments are all the same length, it makes sense to store them in a data frame
+```{r}
+# combine to a list
+mu <- list(5, 10, -3)
+sigma <- list(1, 5, 10)
+n <- list(1, 3, 5)
+params <- list(n, mu, sigma)
+
+# or as data frame
+params <- tribble(
+  ~mean, ~sd, ~n,
+    5,     1,  1,
+   10,     5,  3,
+   -3,    10,  5
+)
+params %>%
+  pmap(rnorm)
+```
+
+* `invoke_map()` to vary the function itself as well as varying the arguments to the function:
+```{r}
+f <- c("runif", "rnorm", "rpois")
+param <- list(
+  list(min = -1, max = 1), 
+  list(sd = 5), 
+  list(lambda = 10)
+)
+invoke_map(f, param, n = 5)
+
+# or use a df 
+sim <- tribble(
+  ~f,      ~params,
+  "runif", list(min = -1, max = 1),
+  "rnorm", list(sd = 5),
+  "rpois", list(lambda = 10)
+)
+sim %>% 
+  mutate(sim = invoke_map(f, params, n = 10))
+```
+
+* `walk()`: call a function for its side effects, rather than for its return value &#8594;  render output to the screen or save files to disk - the important thing is the action, not the return value.
+* For example, if you had a list of plots and a vector of file names, you could use pwalk() to save each file to the corresponding location on disk
+* walk(), walk2() and pwalk() all invisibly return .x, the first argument.
+```{r}
+plots <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(~ggplot(., aes(mpg, wt)) + geom_point())
+paths <- stringr::str_c(names(plots), ".pdf")
+
+# pwalk(list(paths, plots), ggsave, path = tempdir())
+```
+
+* other functions:
+```{r}
+iris %>% 
+  keep(is.factor)
+iris %>% 
+  discard(is.factor)
+
+x <- list(1:5, letters, list(10)) %>% 
+x %>%   
+  some(is_character)
+#> [1] TRUE
+x %>% every(is_vector)
+#> [1] TRUE
+x %>% 
+  detect(~ . > 5)
+x %>% 
+  detect_index(~ . > 5)
+x %>% 
+  head_while(~ . > 5)
+x %>% 
+  tail_while(~ . > 5)
+```
+
+* `reduce()` takes a “binary” function (i.e. a function with two primary inputs), and applies it repeatedly to a list until there is only a single element left.
+* `accumulate()` is similar but it keeps all the interim results. 
+```{r}
+dfs <- list(
+  age = tibble(name = "John", age = 30),
+  sex = tibble(name = c("John", "Mary"), sex = c("M", "F")),
+  trt = tibble(name = "Mary", treatment = "A")
+)
+dfs %>% reduce(full_join)
+
+vs <- list(
+  c(1, 3, 5, 6, 10),
+  c(1, 2, 3, 7, 8, 10),
+  c(1, 2, 3, 4, 8, 9, 10)
+)
+vs %>% reduce(intersect)
+
+x <- sample(10)
+x %>% accumulate(`+`)
+```
+
+
+# 23 Model Basics
+
+* If you want to see what R actually does, you can use the **model_matrix()** function. It takes a data frame and a formula and returns a tibble that defines the model equation: each column in the output is associated with one coefficient in the model, the function is always y = a_1 * out1 + a_2 * out_2
+* Transformations:  If your transformation involves `+, *, ^,` or `-`, you’ll need to wrap it in **I()** so R doesn’t treat it like part of the model specification. For example, y ~ x + I(x ^ 2) is translated to y = a_1 + a_2 * x + a_3 * x^2. If you forget the I() and specify y ~ x ^ 2 + x, R will compute y ~ x * x + x.
+* You can always see exactly how many observations were used with calling nobs() in a model-object 
+* Other types of Models: Trees, e.g. rpart::rpart(), attack the problem in a completely different way than linear models. They fit a piece-wise constant model, splitting the data into progressively smaller and smaller pieces. Trees aren’t terribly effective by themselves, but they are very powerful when used in aggregate by models like random forests (e.g. randomForest::randomForest()) or gradient boosting machines (e.g. xgboost::xgboost.)
+
+
+# 24 Model Building 
+## ggf. nochmal lesen zusammen mit Model Basics
+
+
+# 25 Many Models 
+
+## Working with nested data
+* nested data frame. To create a nested data frame we start with a grouped data frame, and “nest” it:
+```{r}
+library(gapminder)
+by_country <- gapminder %>% 
+  group_by(country, continent) %>% 
+  nest()
+
+by_country
+```
+
+* define a function
+* use purrr::map() to apply the function to each element of the nested data frame
+* Rather than leaving the list of models as a free-floating object, it’s better to store it as a column in the data frame. Storing related objects in columns is a key part of the value of data frames, and why list-columns are such a good idea &#8594; this is especially useful, because transformations are performed on all objects in the same way (e.g. filtering or ordering)
+```{r}
+country_model <- function(df) {
+  lm(lifeExp ~ year, data = df)
+}
+
+by_country <- by_country %>% 
+  mutate(model = map(data, country_model))
+
+# example: add residuals
+by_country <- by_country %>% 
+  mutate(
+    resids = map2(data, model, add_residuals)
+  )
+
+# unnest
+resids <- unnest(by_country, resids)
+resids
+# resids %>% 
+#   ggplot(aes(year, resid)) +
+#     geom_line(aes(group = country), alpha = 1 / 3) + 
+#     geom_smooth(se = FALSE) +
+#     facet_wrap(~continent)
+
+```
+
+* use mutate() and unnest() to create a data frame with a row for each country:
+```{r}
+by_country %>% 
+  mutate(glance = map(model, broom::glance)) %>% 
+  unnest(glance)
+```
+
+## List columns
+Generally there are three parts of an effective list-column pipeline:
+
+1. You create the list-column using one of nest(), summarise() + list(), or mutate() + a map function, as described in Creating list-columns.
+2. You create other intermediate list-columns by transforming existing list columns with map(), map2() or pmap(). For example, in the case study above, we created a list-column of models by transforming a list-column of data frames.
+3. You simplify the list-column back down to a data frame or atomic vector, as described in Simplifying list-columns.
+
+* ENFRAME: create list columns from a named list, using tibble::enframe().
+* Using `nest()` in two complementary ways:
+```{r}
+# 1 nesting a grouped data.frame
+gapminder %>% 
+  group_by(country, continent) %>% 
+  nest()
+
+# 2 Specify variables to be grouped 
+gapminder %>% 
+  nest(data = c(year:gdpPercap))
+```
+
+* One restriction of summarise() is that it only works with summary functions that return a single value. That means that you can’t use it with functions like quantile() that return a vector of arbitrary length. You can however, wrap the result in a list:
+```{r}
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(q = list(quantile(mpg))) 
+# or:
+probs <- c(0.01, 0.25, 0.5, 0.75, 0.99)
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(p = list(probs), q = list(quantile(mpg, probs))) %>% 
+  unnest(c(p, q))
+```
+
+* `tibble::enframe()`: if you want to iterate over both the contents of a list and its elements. Or in other words if you have a **named list** and the names should get their own column:
+```{r}
+x <- list(
+  a = 1:5,
+  b = 3:4, 
+  c = 5:6
+) 
+
+df <- enframe(x)
+df
+#> # A tibble: 3 x 2
+#>   name  value    
+#>   <chr> <list>   
+#> 1 a     <int [5]>
+#> 2 b     <int [2]>
+#> 3 c     <int [2]>
+
+df %>% 
+  mutate(
+    smry = map2_chr(name, value, ~ stringr::str_c(.x, ": ", .y[1]))
+  )
+```
+
+* Don’t forget about the map_*() shortcuts - you can use map_chr(x, "apple") to extract the string stored in apple for each element of x. This is useful for pulling apart nested lists into regular columns. Use the .null argument to provide a value to use if the element is missing (instead of returning NULL)
+
+Tidy Data with broom:
+
+1. broom::glance(model) returns a row for each model. Each column gives a model summary: either a measure of model quality, or complexity, or a combination of the two.
+2. broom::tidy(model) returns a row for each coefficient in the model. Each column gives information about the estimate or its variability.
+3. broom::augment(model, data) returns a row for each row in data, adding extra values like residuals, and influence statistics.
+
+
+# 27 R Markdown
+
+* use R Markdown in notebook mode for analyst-to-analyst communication, and in report mode for analyst-to-decision-maker communication
+* Knit programmatically with rmarkdown::render("1-example.Rmd")
+* Chunk Options: <http://yihui.name/knitr/options/> for full list:
+    * eval = FALSE prevents code from being evaluated. 
+    * include = FALSE runs the code, but doesn’t show the code or results in the final document
+    * echo = FALSE prevents code, but not the results from appearing in the finished file
+    * results = 'hide' hides printed output; fig.show = 'hide' hides plots.
+    * **cache** = TRUE will save the output of the chunk to a specially named file on disk. On subsequent runs, knitr will check to see if the code has changed, and if it hasn’t, it will reuse the cached results --> best used together with `dependson = "raw_data"` or `cache.extra` 
+    * knitr::clean_cache()
+```{r}
+I(```{r raw_data, cache.extra = file.info("a_very_large_file.csv")}
+rawdata <- readr::read_csv("a_very_large_file.csv")
+```)
+```
+* If you prefer that data be displayed with additional formatting you can use the knitr::kable function
+* For even deeper customisation, consider the xtable, stargazer, pander, tables, and ascii packages
+```{r}
+knitr::kable(
+  mtcars[1:5, ], 
+  caption = "A knitr kable."
+)
+```
+
+*  If you were **preparing a report**, you might set:
+```{r}
+I(
+knitr::opts_chunk$set(
+  echo = FALSE
+)
+)
+# That will hide the code by default, so only showing the chunks you deliberately choose to show (with echo = TRUE)
+```
+* When inserting numbers into text, `format()` is your friend
+* working directory of an R Markdown is the directory in which it lives
+
+YAML
+* YAML stands for “yet another markup language”,
+* Parameters are useful when you want to re-render the same report with distinct values for various key inputs.
+    * parameters are available within the code chunks as a read-only list named params
+    * You can write atomic vectors directly into the YAML header. You can also run arbitrary R expressions by prefacing the parameter value with !r:
+```{r, eval=FALSE}
+---
+output: html_document
+params:
+  start: !r lubridate::ymd("2015-01-01")
+  snapshot: !r lubridate::ymd_hms("2015-01-01 12:30:00")
+---
+```
+    * In RStudio, you can click the “Knit with Parameters” option in the Knit dropdown 
+    * if you need to produce many such parameterised reports, you can call rmarkdown::render() with a list of params:
+```{r}
+rmarkdown::render("fuel-economy.Rmd", params = list(my_class = "suv"))
+```
+
+* Bibliographies
+    * Pandoc can automatically generate citations and a bibliography in a number of styles. To use this feature, specify a bibliography file using the bibliography field in your file’s header. 
+    * You can use many common bibliography formats including BibLaTeX, BibTeX, endnote, medline.
+    
+
+# 28 Graphics for communication 
+
+## Label
+
+* `labs()`in ggplot 
+* `title`: The purpose of a plot title is to summarise the main finding.
+* `subtitle` adds additional detail in a smaller font beneath the title.
+* `caption` adds text at the bottom right of the plot, often used to describe the source of the data
+* replace axis and legend titles: `x`, `y`, `colour` (for example, if a grouped variable by color is used in the legend)
+* It’s possible to use mathematical equations instead of text strings. Just switch "" out for quote() and read about the available options in ?plotmath
+
+## Annotations 
+
+* `geom_text()`: similar to geom_point(), but it has an additional aesthetic: label (works with plotly::ggplotly())
+* `geom_label()`: draws a rectangle behind the text (use the nudge_y parameter to move the labels slightly above the corresponding points) --Y works **not** with plotly::ggplotly()
+* `ggrepel`: will automatically adjust labels so that they don’t overlap
+* notice the second point layer with hollow points 
+* alternative: replace the legend with labels placed directly on the plot
+```{r}
+best_in_class <- mpg %>%
+  group_by(class) %>%
+  filter(row_number(desc(hwy)) == 1)
+
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(colour = class)) +
+  geom_point(size = 3, shape = 1, data = best_in_class) +
+  ggrepel::geom_label_repel(aes(label = model), data = best_in_class)
+```
+
+* Alternatively, you might just want to add a single label to the plot, but you’ll still need to create a data frame. Often, you want the label in the corner of the plot, so it’s convenient to create a new data frame using summarise() to compute the maximum values of x and y:
+```{r}
+label <- mpg %>%
+  summarise(
+    displ = max(displ),
+    hwy = max(hwy),
+    label = "Increasing engine size is \nrelated to decreasing fuel economy."
+  )
+
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  geom_text(aes(label = label), data = label, vjust = "top", hjust = "right") 
+```
+
+* In these examples, I manually broke the label up into lines using "\n". Another approach is to use stringr::str_wrap() to automatically add line breaks, given the number of characters you want per line 
+* `hjust` and `vjust` control the alignment of the label (top, bottom, left, right, center)
+* Use `geom_hline()` and `geom_vline()` to add reference lines. I often make them thick (size = 2) and white (colour = white), and draw them underneath the primary data layer. That makes them easy to see, without drawing attention away from the data.
+* `geom_rect()` to draw a rectangle around points of interest. The boundaries of the rectangle are defined by aesthetics xmin, xmax, ymin, ymax
+* `geom_segment()` with the arrow argument to draw attention to a point with an arrow. Use aesthetics x and y to define the starting location, and xend and yend to define the end location.
+
+## Scales
+
+* Adjust breaks and labels of scales (`NULL` to suppress the labels altogether. This is useful for maps, or for publishing plots where you can’t share the absolute numbers):
+```{r}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  scale_y_continuous(breaks = seq(15, 40, by = 5)) +
+  scale_x_continuous(labels = NULL)
+```
+* ColorBrewer scales which have been hand tuned to work better for people with common types of colour blindness --> overview at [28.4.3](https://r4ds.had.co.nz/graphics-for-communication.html#replacing-a-scale)
+* If there are just a few colours, you can add a redundant shape mapping. This will also help ensure your plot is interpretable in black and white.
+```{r}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(color = drv, shape = drv)) +
+  scale_colour_brewer(palette = "Set1")
+```
+* When you have a predefined mapping between values and colours, use `scale_colour_manual()`
+* continuous colour, you can use the built-in `scale_colour_gradient()` or `scale_fill_gradient()`. 
+* If you have a diverging scale, you can use `scale_colour_gradient2()`. That allows you to give, for example, positive and negative values different colours.
+* **viridis package**: a continuous analog of the categorical ColorBrewer scales
+
+## Zooming 
+
+* There are three ways to control the plot limits:
+    * Adjusting what data are plotted
+    * Setting the limits in each scale
+    * Setting xlim and ylim in coord_cartesian()
+* To zoom in on a region of the plot, it’s generally best to use coord_cartesian()
+
+## Themes 
+
+* More Themes: [ggthemes](https://github.com/jrnold/ggthemes) --> e.g. `+ ggthemes::theme_hc(style = "darkunica")`
+* Control the non-data parts of the plot
+* Legend Position:
+```{r}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(colour = class)) +
+  geom_smooth(se = FALSE) +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(nrow = 1, override.aes = list(size = 4)))
+```
+* You can also create your own themes, if you are trying to match a particular corporate or journal style.
+
+## Saving
+
+* ggsave() will save the most recent plot to disk: `ggsave("my-plot.pdf")`
+* If you don’t specify the width and height they will be taken from the dimensions of the current plotting device. For reproducible code, you’ll want to specify them.
+* The biggest challenge of graphics in *R Markdown is getting your figures the right size and shape*. There are five main options that control figure sizing: fig.width, fig.height, fig.asp, out.width and out.height.
+* **TIPP** "I find it most aesthetically pleasing for plots to have a consistent width. To enforce this, I set `fig.width = 6`  (6" [inches?]) and `fig.asp = 0.618` (*the golden ratio*) in the defaults. Then in individual chunks, I only adjust `fig.asp`."
+* To put *multiple plots in a single row* I set the out.width to 50% for two plots, 33% for 3 plots, or 25% to 4 plots, and set fig.align = "default"
+
+> Best place to learn more is the ggplot2 book: ggplot2: Elegant graphics for data analysis
+
+> ggplot **Extensions** - Gallery: <https://exts.ggplot2.tidyverse.org/gallery/>
+*e.g ggraph, gganimate, ggdark, ggwordcloud, esquisse*
+
+
+# 29 Markdown formats
+
+* Two ways to set the output of a document:
+    * Permanently, by modifying the YAML header
+    * Transiently, by calling rmarkdown::render() by hand: `rmarkdown::render("diamond-sizes.Rmd", output_format = "word_document")`
+* You can even render to multiple outputs by supplying a list of formats:
+```{r, eval=FALSE}
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+```
+* Remember, when generating a document to share with decision makers, you can turn off the default display of code by setting global options in the setup chunk:
+```{r}
+knitr::opts_chunk$set(echo = FALSE)
+```
+* A *notebook*, html_notebook, is a variation on a html_document.
+* Both HTML outputs will contain the fully rendered output, but the notebook also contains the full source code. That means you can use the .nb.html generated by the notebook in two ways:
+    * You can view it in a web browser, and see the rendered output. 
+    * You can edit it in RStudio. When you open an .nb.html file, RStudio will automatically recreate the .Rmd file that generated it.
+* Git and GitHub: if you’re already using them: use both html_notebook and github_document outputs:
+```{r, eval=FALSE}
+output:
+  html_notebook: default
+  github_document: default
+```
+* R Markdown comes with three **presentation** formats built-in:
+    *ioslides_presentation - HTML presentation with ioslides
+    *slidy_presentation - HTML presentation with W3C Slidy
+    *beamer_presentation - PDF presentation with LaTeX Beamer.
+There are many packages that provide [htmlwidgets](http://www.htmlwidgets.org), including:
+  * dygraphs, http://rstudio.github.io/dygraphs/, for interactive time series  visualisations.
+  * DT, http://rstudio.github.io/DT/, for interactive tables.
+  * threejs, https://github.com/bwlewis/rthreejs for interactive 3d plots.
+  * DiagrammeR, http://rich-iannone.github.io/DiagrammeR/ for diagrams (like flow charts and simple node-link diagrams).
+
+--> check out the further reading section at the end for presentation skills and other Markdown formats (e.g. for joural articles)
+
+# 30 Markdown workflow
+
+> read thsi section in regular intervals: <https://r4ds.had.co.nz/r-markdown-workflow.html>
+
+
+
+Also Look up:
+* read vignette("colwise")
+* Janitor 
+* Broom
+* Tidy Models
+* modelr ? --> siehe auch beispeil ganz hinten bei Kapitel 7 (herausrechnen von Größe, um Zusammenhang zwischen Preis und Reinheit zu betrachten)
+* feather --> for data saving and sharing across programming languages
+* rio Package (https://github.com/leeper/rio)
+    --> vorteil u.a.: benutzt data.table::fread(), kann .zip lesen
+* 
+
+
+
+combine lead() with cumsum() to calculate AdBank?
+
+TODO for work: nemesis routine - script as function for montelo (like mmm_plot)
+* set up a routine to screen, tidy, transform and summarise new data sets in common formats with a flexible "walk through" script (not completely automated) and a nice usefull summary of key statistics and optional visualizations especially for the AV (or interactive visualization pane)
+    * Explicitly transform into an expected format (tibble)
+    * Check for names (duplicates, special characters)
+    * check AND explicitly set a date-time format
+    * find and replace NAs
+    * find and replace/remove empty and zero-variance columns (and store names of these variables )
+    * optional: five most and least correlated variables with the AV
+    * optional: ten highest bivariate correltations of variables 
+    * Save Data at various stages (after import, after final transformations) as .RData (or something better?)
+    * declare which variables to log (and adbank) and check if those variables contain negative values 
+    * optional: include the already developed automatic grouping by common selectors (e.g. "spend", "imp")
+    * vorangestellt häufigste read-Funktionen mehr oder weniger ausgefüllt und auskommentiert (z.B. für Excel, EViews, CSV2, MXA, RData, RDS)
+    * Export im bynd Stil oder neutralem Stil für Kollegen zum nachschauen und gut genug für Kunden als Feedbackschleife --> sollen Zusammenfassung bestätigen als plausibel (im zuge unserer fortlaufenden Verbesserung unserer Qualitätsstandards...) --> ggf. am besten Excel da auch kommentierbar durch Kunden, ggf. ergäntz durch Markdown mit interaktiven HTML Elementen (Plotter Funktion oder vor-kalkulierte navigierbare Plots)
+    * Identifizieren, welche dieser "Module" zwingend sind und welche optional für minimalen Output (z.B. Plots sollten auch leer bleiben können)
+    * ggf. Funktion für die Kalkulation standardisierter Abweichungen und deren Summe, wenn mehrere Datenquellen verglichen werden oder neue mit historischen Daten 
+    
+    
+
+    
+  Für morgen:
+--> Gorbatschow File für Datenaufbereitung sichern 
+--> montelo-Ordner Anlegen mit Sammlung von Scripten, welche zu Funktionen aufbereitet werden sollten --> identifikation weiterer solcher Skripte
