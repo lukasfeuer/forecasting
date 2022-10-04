@@ -1,4 +1,0 @@
-"0",""
-"0","recent_production %>%"
-"0","  ACF(Beer) %>%"
-"0","  autoplot() + labs(title=""Australian beer production"")"

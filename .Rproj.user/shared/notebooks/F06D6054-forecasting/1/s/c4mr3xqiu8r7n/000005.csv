@@ -1,4 +1,0 @@
-"0","  #labs(y = """","
-"0","  #     title = latex2exp::TeX(paste0("
-"0","  #       ""Transformed gas production with $\\lambda$ = "","
-"0","  #       round(lambda,2))))"

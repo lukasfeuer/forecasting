@@ -1,8 +1,0 @@
-"0","melsyd_economy <- ansett %>%"
-"0","  filter(Airports == ""MEL-SYD"", Class == ""Economy"") %>%"
-"0","  mutate(Passengers = Passengers / 1000)"
-"0",""
-"0","autoplot(melsyd_economy, Passengers) +"
-"0","  labs(title = ""Ansett airlines economy class"","
-"0","       subtitle = ""Melbourne-Sydney"","
-"0","       y = ""Passengers ('000)"")"
