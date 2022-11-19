@@ -5,6 +5,9 @@ date: "04.02.2022"
 output: 
   html_document:
     theme: darkly
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -12,51 +15,65 @@ knitr::opts_chunk$set(echo = TRUE)
 library(fpp3)
 ```
 
-***
-You find the book online [here](https://otexts.com/fpp3/).
+------------------------------------------------------------------------
 
-***
+You can find the book online [here](https://otexts.com/fpp3/).
+
+------------------------------------------------------------------------
 
 ## 1 Getting Started
 
-The predictability of an event or a quantity depends on several factors including:
+The predictability of an event or a quantity depends on several factors
+including:
 
- 1. how well we understand the factors that contribute to it;
- 2. how much data is available;
- 3. how similar the future is to the past;
- 4. whether the forecasts can affect the thing we are trying to forecast.
- 
-* Often in forecasting, a key step is knowing when something can be forecast accurately, and when forecasts will be no better than tossing a coin. 
-* Modern organisations require short-term, medium-term and long-term forecasts, depending on the specific application.
-* Prediction Intervals: The dark shaded region shows 80% prediction intervals. That is, each future value is expected to lie in the dark shaded region with a probability of 80%. The light shaded region shows 95% prediction intervals. These prediction intervals are a useful way of displaying the uncertainty in forecasts. 
+1.  how well we understand the factors that contribute to it;
+2.  how much data is available;
+3.  how similar the future is to the past;
+4.  whether the forecasts can affect the thing we are trying to
+    forecast.
+
+-   Often in forecasting, a key step is knowing when something can be
+    forecast accurately, and when forecasts will be no better than
+    tossing a coin.
+-   Modern organisations require short-term, medium-term and long-term
+    forecasts, depending on the specific application.
+-   Prediction Intervals: The dark shaded region shows 80% prediction
+    intervals. That is, each future value is expected to lie in the dark
+    shaded region with a probability of 80%. The light shaded region
+    shows 95% prediction intervals. These prediction intervals are a
+    useful way of displaying the uncertainty in forecasts.
 
 A forecasting task usually involves five basic steps.
 
-  *  Step 1: Problem definition.
-  *  Step 2: Gathering information.
-  *  Step 3: Preliminary (exploratory) analysis.
-  *  Step 4: Choosing and fitting models.
-  *  Step 5: Using and evaluating a forecasting model.
+-   Step 1: Problem definition.
+-   Step 2: Gathering information.
+-   Step 3: Preliminary (exploratory) analysis.
+-   Step 4: Choosing and fitting models.
+-   Step 5: Using and evaluating a forecasting model.
 
 The statistical perspective:
 
-* The thing we are trying to forecast is unknown (or we would not be forecasting it), and so we can think of it as a random variable. 
-* The set of values that this random variable could take, along with their relative probabilities, is known as the “probability distribution” of y~t~|I. In forecasting, we call this the forecast distribution.
-
+-   The thing we are trying to forecast is unknown (or we would not be
+    forecasting it), and so we can think of it as a random variable.
+-   The set of values that this random variable could take, along with
+    their relative probabilities, is known as the "probability
+    distribution" of y~t~\|I. In forecasting, we call this the forecast
+    distribution.
 
 ## 2 Time series graphics
 
-The seasonal period is the number of observations before the seasonal pattern repeats:
+The seasonal period is the number of observations before the seasonal
+pattern repeats:
 
-| Data	  |Minute	  |Hour   	|Day    	|Week   	|Year     |
-|---------|---------|---------|---------|---------|---------|
-| Quarters|	        |         |   			|         |	4 |
-| Months	|	        |         |   		  |  	      | 12|
-| Weeks		|	        |         |   		  |         | 52|
-| Days		|	        |         |   	    |   7	    | 365.25|
-| Hours		|	        |         |   24	  |  168	  | 8766|
-| Minutes	|	        |60	      |   1440	| 10080	  | 525960|
-| Seconds	|  60	    |3600     |	86400	  |  604800 |31557600|
+| Data     | Minute | Hour | Day   | Week   | Year     |
+|----------|--------|------|-------|--------|----------|
+| Quarters |        |      |       |        | 4        |
+| Months   |        |      |       |        | 12       |
+| Weeks    |        |      |       |        | 52       |
+| Days     |        |      |       | 7      | 365.25   |
+| Hours    |        |      | 24    | 168    | 8766     |
+| Minutes  |        | 60   | 1440  | 10080  | 525960   |
+| Seconds  | 60     | 3600 | 86400 | 604800 | 31557600 |
 
 ```{r}
 melsyd_economy <- ansett %>%
@@ -72,17 +89,28 @@ autoplot(melsyd_economy, Passengers) +
 
 ### Time series patterns
 
-* *Trend*: long term increase/decrease, does not have to be linear
-* *Seasonal*: regular pattern **always of a fixed and known period** 
-* *Cyclic*: data sising and falling not caused by a fixed frequency --> e.g. the business cycle; usually at least 2 years 
---> average length of cycles is longer than the length of a seasonal pattern, and the magnitudes of cycles tend to be more variable than the magnitudes of seasonal patterns.
---> When choosing a forecasting method, we will first need to identify the time series patterns in the data, and then choose a method that is able to capture the patterns properly.
+-   *Trend*: long term increase/decrease, does not have to be linear
+-   *Seasonal*: regular pattern **always of a fixed and known period**
+-   *Cyclic*: data rising and falling not caused by a fixed frequency
+    --\> e.g. the business cycle; usually at least 2 years --\> average
+    length of cycles is longer than the length of a seasonal pattern,
+    and the magnitudes of cycles tend to be more variable than the
+    magnitudes of seasonal patterns. --\> When choosing a forecasting
+    method, we will first need to identify the time series patterns in
+    the data, and then choose a method that is able to capture the
+    patterns properly.
 
 ### Seasonal plots
 
-* seasonal plot is similar to a time plot except that the data are plotted against the individual “seasons” in which the data were observed.
-* allows the underlying seasonal pattern to be seen more clearly, and is especially useful in identifying years in which the pattern changes
-* Where the data has more than one seasonal pattern, the `period` argument can be used to select which seasonal plot is required.
+-   seasonal plot is similar to a time plot except that the data are
+    plotted against the individual "seasons" in which the data were
+    observed.
+-   allows the underlying seasonal pattern to be seen more clearly, and
+    is especially useful in identifying years in which the pattern
+    changes
+-   Where the data has more than one seasonal pattern, the `period`
+    argument can be used to select which seasonal plot is required.
+
 ```{r}
 PBS %>%
   filter(ATC2 == "A10") %>%
@@ -91,21 +119,30 @@ PBS %>%
   mutate(Cost = TotalC / 1e6) -> a10
 a10 %>%
   gg_season(Cost, labels = "both") +
-  labs(y = "$ (millions)",
+  labs(y = "$ (millions)", x = NULL, 
        title = "Seasonal plot: Antidiabetic drug sales")
 ```
 
-* An alternative plot that emphasises the seasonal patterns is where the data for each season are collected together in separate mini time plots.
-* It is especially useful in identifying changes within particular seasons
+-   An alternative plot that emphasizes the seasonal patterns is where
+    the data for each season are collected together in separate mini
+    time plots.
+-   It is especially useful in identifying changes within particular
+    seasons
+
 ```{r}
 a10 %>%
   gg_subseries(Cost) +
   labs(y = "$ (millions)", title = "Australian antidiabetic drug sales")
 ```
 
-* Correlation as a measure of *linear* relationship --> misleading for non-linear realtionships 
-* if possible, plot all predictor variables against each other 
-* note: facet_grid on one categorical variable puts "headers" to the sides --> makes it better to read compared to faced_wrap 
+### Correlation Plots
+
+-   Correlation as a measure of *linear* relationship --\> misleading
+    for non-linear realtionships
+-   if possible, plot all predictor variables against each other
+-   note: facet_grid on one categorical variable puts "headers" to the
+    sides --\> makes it better to read compared to faced_wrap
+
 ```{r message=FALSE}
 visitors <- tourism %>%
   group_by(State) %>%
@@ -118,9 +155,15 @@ visitors %>%
 # On the diagonal are shown density plots.
 ```
 
-* **lag plots**: 
-    * where the horizontal axis shows lagged values of the time series
-    * Here the colours indicate the quarter of the variable on the vertical axis. The relationship is strongly positive at lags 4 and 8, reflecting the strong seasonality in the data. The negative relationship seen for lags 2 and 6 occurs because peaks (in Q4) are plotted against troughs (in Q2)
+### Lag Plots
+
+-   where the horizontal axis shows lagged values of the time series
+-   Here the colours indicate the quarter of the variable on the
+    vertical axis. The relationship is strongly positive at lags 4 and
+    8, reflecting the strong seasonality in the data. The negative
+    relationship seen for lags 2 and 6 occurs because peaks (in Q4) are
+    plotted against troughs (in Q2)
+
 ```{r}
 recent_production <- aus_production %>%
   filter(year(Quarter) >= 2000)
@@ -129,122 +172,194 @@ recent_production %>%
   labs(x = "lag(Beer, k)")
 ```
 
-* **Autocorrelation**: 
-    * Just as correlation measures the extent of a linear relationship between two variables, autocorrelation measures the linear relationship between lagged values of a time series.
-    * There are several autocorrelation coefficients, corresponding to each panel in the lag plot.
-    * The autocorrelation coefficients make up the **autocorrelation function or ACF** --> `ACF()`
-    * We usually plot the ACF to see how the correlations change with the lag k
-    * The dashed blue lines indicate whether the correlations are significantly different from zero
+### Autocorrelation
+
+-   Just as correlation measures the extent of a linear relationship
+    between two variables, autocorrelation measures the linear
+    relationship between lagged values of a time series.
+-   There are several autocorrelation coefficients, corresponding to
+    each panel in the lag plot.
+-   The autocorrelation coefficients make up the **autocorrelation
+    function or ACF** --\> `ACF()`
+-   We usually plot the ACF to see how the correlations change with the
+    lag k
+-   The dashed blue lines indicate whether the correlations are
+    significantly different from zero
+
 ```{r}
-recent_production %>% 
-  ACF(Beer, lag_max = 9)
+#recent_production %>% 
+#  ACF(Beer, lag_max = 9)
 
 recent_production %>%
   ACF(Beer) %>%
   autoplot() + labs(title="Australian beer production")
 ```
 
-* **Trend**: autocorrelations for small lags tend to be large and positive because observations nearby in time are also nearby in value. So the ACF of a trended time series tends to have positive values that slowly decrease as the lags increase.
-* **Seasonal**: autocorrelations will be larger for the seasonal lags (at multiples of the seasonal period) than for other lags.
---> When data are both trended and seasonal, you see a combination of these effects.
+-   **Trend**: autocorrelations for small lags tend to be large and
+    positive because observations nearby in time are also nearby in
+    value. So the ACF of a trended time series tends to have positive
+    values that slowly decrease as the lags increase.
 
-* **White Noise**: Time series that show no autocorrelation --> we expect each autocorrelation to be close to zero
+-   **Seasonal**: autocorrelations will be larger for the seasonal lags
+    (at multiples of the seasonal period) than for other lags. --\> When
+    data are both trended and seasonal, you see a combination of these
+    effects.
 
+-   **White Noise**: Time series that show no autocorrelation --\> we
+    expect each autocorrelation to be close to zero
 
 ## 3 Time series decomposition
 
-* We usually combine the trend and cycle into a single *trend-cycle*  component (often just called the trend for simplicity). 
-* Thus we can think of a time series as comprising three components: 
-    * a *trend-cycle* component
-    * a *seasonal* component
-    * a *remainder* component (containing anything else in the time series)
-* there can be more than one seasonal component
-* When decomposing a time series, it is sometimes helpful to first transform or adjust the series in order to make the decomposition 
+-   We usually combine the trend and cycle into a single *trend-cycle*
+    component (often just called the trend for simplicity).
+-   Thus we can think of a time series as comprising three components:
+    -   a *trend-cycle* component
+    -   a *seasonal* component
+    -   a *remainder* component (containing anything else in the time
+        series)
+-   There can be more than one seasonal component
+-   When decomposing a time series, it is sometimes helpful to first
+    transform or adjust the series in order to make the decomposition
 
 ### Transformation
 
-* four kinds of adjustments: calendar adjustments, population adjustments, inflation adjustments and mathematical transformations
-* simplify the patterns in the historical data by removing known sources of variation, or by making the pattern more consistent across the whole data set
-* **Calendar** Adjustment 
-    * e.g. total monthly sales in a retail store, there will be variation between the months simply because of the different numbers of trading days in each month
-    * remove this variation by computing average sales per trading day in each month, rather than total sales in the month
-* **Population** Adjustment
-    * For most data that are affected by population changes, it is best to use per-capita data rather than the totals
-```{r}
-global_economy %>%
-  filter(Country == "Australia") %>%
-  autoplot(GDP/Population) +
-  labs(title= "GDP per capita", y = "$US")
-```
+-   Four kinds of adjustments: **calendar** adjustments, **population**
+    adjustments, **inflation** adjustments and **mathematical**
+    transformations
 
-* **Inflation** Adjustment
-    * For data which are affected by the value of money (e.g. average cost of a new house) --> adjustments via a *price index*
-    * financial time series are usually adjusted so that all values are stated in dollar values from a particular year
-    * Price indexes are often constructed by government agencies
-    For consumer goods, a common price index is the Consumer Price Index (or CPI)
-```{r warning=FALSE, include=FALSE}
-print_retail <- aus_retail %>%
-  filter(Industry == "Newspaper and book retailing") %>%
-  group_by(Industry) %>%
-  index_by(Year = year(Month)) %>%
-  summarise(Turnover = sum(Turnover))
-aus_economy <- global_economy %>%
-  filter(Code == "AUS")
-```
-```{r warning=FALSE}
-print_retail %>%
-  left_join(aus_economy, by = "Year") %>%
-  mutate(Adjusted_turnover = Turnover / CPI * 100) %>%
-  pivot_longer(c(Turnover, Adjusted_turnover),
-               values_to = "Turnover") %>%
-  mutate(name = factor(name,
-         levels=c("Turnover","Adjusted_turnover"))) %>%
-  ggplot(aes(x = Year, y = Turnover)) +
-  geom_line() +
-  facet_grid(name ~ ., scales = "free_y") +
-  labs(title = "Turnover: Australian print media industry",
-       y = "$AU")
-```
+-   Simplify the patterns in the historical data by removing known
+    sources of variation, or by making the pattern more consistent
+    across the whole data set
 
-* **Mathematical** transformations
-    * If the data shows variation that increases or decreases with the level of the series
-    * Logarithms are useful because they are interpretable: changes in a log value are relative (or percentage) changes on the original scale
-    * power transformations: square roots and cube roots
-    * **Box-Cox transformations**: 
-        * includes both logarithms and power transformations
-        * depend on the parameter λ
-        * allows for negative values of y~t~ provided λ > 0
-        * if λ = 0 natural logarithms are used, but if λ ≠ 0, a power transformation is used
-        * If λ=1, then w~t~=y~t~ −1, so the transformed data is shifted downwards but there is no change in the shape of the time series. For all other values of λ, the time series will change shape.
-        * A good value of λ is one which makes the size of the seasonal variation about the same across the whole series
-        * `guerrero` feature can be used to choose a value of lambda
-```{r}
-lambda <- aus_production %>%
-  features(Gas, features = guerrero) %>%
-  pull(lambda_guerrero)
-aus_production %>%
-  autoplot(box_cox(Gas, lambda))# +
-  #labs(y = "",
-  #     title = latex2exp::TeX(paste0(
-  #       "Transformed gas production with $\\lambda$ = ",
-  #       round(lambda,2))))
-```
+-   **Calendar** Adjustment
+
+    -   e.g. total monthly sales in a retail store, there will be
+        variation between the months simply because of the different
+        numbers of trading days in each month
+    -   remove this variation by computing average sales per trading day
+        in each month, rather than total sales in the month
+
+-   **Population** Adjustment
+
+    -   For most data that are affected by population changes, it is
+        best to use per-capita data rather than the totals
+
+    ```{r}
+    global_economy %>%
+      filter(Country == "Australia") %>%
+      autoplot(GDP/Population) +
+      labs(title= "GDP per capita", y = "$US")
+    ```
+
+-   **Inflation** Adjustment
+
+    -   For data which are affected by the value of money (e.g. average
+        cost of a new house) --\> adjustments via a *price index*
+    -   financial time series are usually adjusted so that all values
+        are stated in dollar values from a particular year
+    -   Price indexes are often constructed by government agencies For
+        consumer goods, a common price index is the Consumer Price Index
+        (or CPI)
+
+    ```{r warning=FALSE, include=FALSE}
+    print_retail <- aus_retail %>%
+      filter(Industry == "Newspaper and book retailing") %>%
+      group_by(Industry) %>%
+      index_by(Year = year(Month)) %>%
+      summarise(Turnover = sum(Turnover))
+    aus_economy <- global_economy %>%
+      filter(Code == "AUS")
+    ```
+
+    ```{r warning=FALSE}
+    print_retail %>%
+      left_join(aus_economy, by = "Year") %>%
+      mutate(Adjusted_turnover = Turnover / CPI * 100) %>%
+      pivot_longer(c(Turnover, Adjusted_turnover),
+                   values_to = "Turnover") %>%
+      mutate(name = factor(name,
+             levels=c("Turnover","Adjusted_turnover"))) %>%
+      ggplot(aes(x = Year, y = Turnover)) +
+      geom_line() +
+      facet_grid(name ~ ., scales = "free_y") +
+      labs(title = "Turnover: Australian print media industry",
+           y = "$AU")
+    ```
+
+-   **Mathematical** transformations
+
+    -   If the data shows variation that increases or decreases with the
+        level of the series
+
+    -   Logarithms are useful because they are interpretable: changes in
+        a log value are relative (or percentage) changes on the original
+        scale
+
+    -   power transformations: square roots and cube roots
+
+    -   **Box-Cox transformations**:
+
+        -   includes both logarithms and power transformations
+        -   depend on the parameter λ
+        -   allows for negative values of y~t~ provided λ \> 0
+        -   if λ = 0 natural logarithms are used, but if λ ≠ 0, a power
+            transformation is used
+        -   If λ=1, then w~t~=y~t~ −1, so the transformed data is
+            shifted downwards but there is no change in the shape of the
+            time series. For all other values of λ, the time series will
+            change shape.
+        -   A good value of λ is one which makes the size of the
+            seasonal variation about the same across the whole series
+        -   `guerrero` feature can be used to choose a value of lambda
+
+    ```{r}
+    lambda <- aus_production %>%
+      features(Gas, features = guerrero) %>%
+      pull(lambda_guerrero)
+    aus_production %>%
+      autoplot(box_cox(Gas, lambda))# +
+      #labs(y = "",
+      #     title = latex2exp::TeX(paste0(
+      #       "Transformed gas production with $\\lambda$ = ",
+      #       round(lambda,2))))
+    ```
 
 ### Time series components
 
-* Additive decomposition: y~t~ is the sum of the seasonal, trend and remainder components 
-* Multiplicative decomposition: S, T and R are multiplied 
+-   Additive decomposition: y~t~ is the sum of the seasonal, trend and
+    remainder components
+-   Multiplicative decomposition: S, T and R are multiplied
 
-> The additive decomposition is the most appropriate if the magnitude of the seasonal fluctuations, or the variation around the trend-cycle, does not vary with the level of the time series. When the variation in the seasonal pattern, or the variation around the trend-cycle, appears to be proportional to the level of the time series, then a multiplicative decomposition is more appropriate. Multiplicative decompositions are common with economic time series.
+> The additive decomposition is the most appropriate if the magnitude of
+> the seasonal fluctuations, or the variation around the trend-cycle,
+> does not vary with the level of the time series. When the variation in
+> the seasonal pattern, or the variation around the trend-cycle, appears
+> to be proportional to the level of the time series, then a
+> multiplicative decomposition is more appropriate. Multiplicative
+> decompositions are common with economic time series.
 
-> An alternative to using a multiplicative decomposition is to first transform the data until the variation in the series appears to be stable over time, then use an additive decomposition. When a log transformation has been used, this is equivalent to using a multiplicative decomposition
+> An alternative to using a multiplicative decomposition is to first
+> transform the data until the variation in the series appears to be
+> stable over time, then use an additive decomposition. When a log
+> transformation has been used, this is equivalent to using a
+> multiplicative decomposition
 
---> Example STL Decomposition --> review: anything beyond the following Chapter on STL? --> TODO read again later
+--\> Example STL Decomposition --\> review: anything beyond the
+following Chapter on STL? --\> TODO read again later
 
-* The grey bars to the left of each panel show the relative scales of the components. Each grey bar represents the same length but because the plots are on different scales, the bars vary in size. 
-* If the seasonal component is removed from the original data, the resulting values are the “seasonally adjusted” data
+-   The grey bars to the left of each panel show the relative scales of
+    the components. Each grey bar represents the same length but because
+    the plots are on different scales, the bars vary in size.
+-   If the seasonal component is removed from the original data, the
+    resulting values are the "seasonally adjusted" data
 
 ```{r}
+us_retail_employment <- us_employment %>%
+  filter(year(Month) >= 1990, Title == "Retail Trade") %>%
+  select(-Series_ID)
+#autoplot(us_retail_employment, Employed) +
+#  labs(y = "Persons (thousands)",
+#       title = "Total employment in US retail")
 us_retail_employment %>% 
   model(
     stl = STL(Employed)
@@ -253,14 +368,19 @@ us_retail_employment %>%
   autoplot()
 ```
 
-
 ### Moving Averages
 
-* The average eliminates some of the randomness in the data, leaving a smooth trend-cycle component
-* We call this an  m-MA, meaning a moving average of order m
-* The order of the moving average determines the smoothness of the trend-cycle estimate. In general, a larger order means a smoother curve.
-* moving averages such as these are usually of an odd order. This is so they are symmetric
-* 5-point moving average (using two data points before and after an observation):
+-   The average eliminates some of the randomness in the data, leaving a
+    smooth trend-cycle component
+-   We call this an m-MA, meaning a moving average of order m
+-   The order of the moving average determines the smoothness of the
+    trend-cycle estimate. In general, a larger order means a smoother
+    curve.
+-   moving averages such as these are usually of an odd order. This is
+    so they are symmetric
+-   5-point moving average (using two data points before and after an
+    observation):
+
 ```{r}
 global_economy %>%
   filter(Country == "Australia") %>%
@@ -272,10 +392,14 @@ global_economy %>%
   geom_line(aes(y = `5-MA`), colour = "#D55E00")
 ```
 
---> Silder Package?
+--\> Silder Package?
 
-* apply a moving average to a moving average --> to make an even-order moving average symmetric --> When a 2-MA follows a moving average of an even order (such as 4), it is called a “centred moving average of order 4.”
-* “2×4-MA” in the last column means a 4-MA followed by a 2-MA
+-   apply a moving average to a moving average --\> to make an
+    even-order moving average symmetric --\> When a 2-MA follows a
+    moving average of an even order (such as 4), it is called a "centred
+    moving average of order 4."
+-   "2×4-MA" in the last column means a 4-MA followed by a 2-MA
+
 ```{r}
 beer <- aus_production %>%
   filter(year(Quarter) >= 1992) %>%
@@ -289,22 +413,44 @@ beer_ma <- beer %>%
   )
 ```
 
-* The most common use of centred moving averages is for **estimating the trend-cycle** from seasonal data. 
-* If the seasonal period is *even* and of order m, we use a 2×m-MA to estimate the trend-cycle. If the seasonal period is *odd* and of order m, we use a m-MA to estimate the trend-cycle --> For example, a 2×12-MA can be used to estimate the trend-cycle of monthly data with annual seasonality and a 7-MA can be used to estimate the trend-cycle of daily data with a weekly seasonality.
-* Other choices for the order of the MA will usually result in trend-cycle estimates being contaminated by the seasonality in the data.
-* *Weighted moving averages*:
-    * For example, the 2×4-MA discussed above is equivalent to a weighted 5-MA with weights given by (1/8, 1/4, 1/4, 1/4, 1/8)
-    * A major advantage of weighted moving averages is that they yield a smoother estimate of the trend-cycle. Instead of observations entering and leaving the calculation at full weight, their weights slowly increase and then slowly decrease
-    
+-   The most common use of centred moving averages is for **estimating
+    the trend-cycle** from seasonal data.
+-   If the seasonal period is *even* and of order m, we use a 2×m-MA to
+    estimate the trend-cycle. If the seasonal period is *odd* and of
+    order m, we use a m-MA to estimate the trend-cycle --\> For example,
+    a 2×12-MA can be used to estimate the trend-cycle of monthly data
+    with annual seasonality and a 7-MA can be used to estimate the
+    trend-cycle of daily data with a weekly seasonality.
+-   Other choices for the order of the MA will usually result in
+    trend-cycle estimates being contaminated by the seasonality in the
+    data.
+-   *Weighted moving averages*:
+    -   For example, the 2×4-MA discussed above is equivalent to a
+        weighted 5-MA with weights given by (1/8, 1/4, 1/4, 1/4, 1/8)
+    -   A major advantage of weighted moving averages is that they yield
+        a smoother estimate of the trend-cycle. Instead of observations
+        entering and leaving the calculation at full weight, their
+        weights slowly increase and then slowly decrease
+
 ### Classical decomposition
 
-* two forms of classical decomposition: an additive decomposition and a multiplicative decomposition
-* In classical decomposition, we assume that the seasonal component is constant from year to year
-* **Additive decomposition**
+-   two forms of classical decomposition: an additive decomposition and
+    a multiplicative decomposition
+
+-   In classical decomposition, we assume that the seasonal component is
+    constant from year to year
+
+-   **Additive decomposition**
+
     (1) Calculate *tend-cycle* as described above
-    (2) Calculate the *detrend series* by subtraction 
-    (3) Estimate the *seasonal component* for each season --> average the detrended values for that season (For example, with monthly data, the seasonal component for March is the average of all the detrended March values in the data)
-    (4) The *remainder* component is calculated by subtracting the estimated seasonal and trend-cycle components
+    (2) Calculate the *detrend series* by subtraction
+    (3) Estimate the *seasonal component* for each season --\> average
+        the detrended values for that season (For example, with monthly
+        data, the seasonal component for March is the average of all the
+        detrended March values in the data)
+    (4) The *remainder* component is calculated by subtracting the
+        estimated seasonal and trend-cycle components
+
 ```{r}
 us_retail_employment %>%
   model(
@@ -316,19 +462,31 @@ us_retail_employment %>%
                   US retail employment")
 ```
 
-* **Multiplicative decomposition**: A classical multiplicative decomposition is similar, except that the subtractions are replaced by divisions (Step 2 & Step 4).
+-   **Multiplicative decomposition**: A classical multiplicative
+    decomposition is similar, except that the subtractions are replaced
+    by divisions (Step 2 & Step 4).
 
 ### Methods used by official statistics agencies
 
-* variants of the X-11 method, or the SEATS method, or a combination of the two
-* designed specifically to work with quarterly and monthly data --> will not handle seasonality of other kinds (daily, hourly or weekly)
-* X-11 Method:
-    * trend-cycle estimates are available for all observations including the end points 
-    * the seasonal component is allowed to vary slowly over time
-    * also handles trading day variation, holiday effects and the effects of known predictors
-    * tends to be highly robust to outliers and level shifts in the time series
-    --> Dagum & Bianconcini (2016)
-    * The X-11 trend-cycle has captured the sudden fall in the data due to the 2007–2008 global financial crisis better than either of the other two methods 
+-   variants of the X-11 method, or the SEATS method, or a combination
+    of the two
+
+-   designed specifically to work with quarterly and monthly data --\>
+    will not handle seasonality of other kinds (daily, hourly or weekly)
+
+-   X-11 Method:
+
+    -   trend-cycle estimates are available for all observations
+        including the end points
+    -   the seasonal component is allowed to vary slowly over time
+    -   also handles trading day variation, holiday effects and the
+        effects of known predictors
+    -   tends to be highly robust to outliers and level shifts in the
+        time series --\> Dagum & Bianconcini (2016)
+    -   The X-11 trend-cycle has captured the sudden fall in the data
+        due to the 2007--2008 global financial crisis better than either
+        of the other two methods
+
 ```{r}
 # requires the seasonal package
 x11_dcmp <- us_retail_employment %>%
@@ -338,11 +496,17 @@ autoplot(x11_dcmp) +
   labs(title =
     "Decomposition of total US retail employment using X-11.")
 ```
-* It can be useful to use seasonal plots and seasonal sub-series plots of the seasonal component, to help us visualise the variation in the seasonal component over time.
-* SEATS Method:
-    * X_13ARIMA_SEATS() function calls the seasonal package
-    * [package](http://www.seasonal.website/seasonal.html)
---> Dagum & Bianconcini (2016)
+
+-   It can be useful to use seasonal plots and seasonal sub-series plots
+    of the seasonal component, to help us visualise the variation in the
+    seasonal component over time.
+
+-   SEATS Method:
+
+    -   X_13ARIMA_SEATS() function calls the seasonal package
+    -   [package](http://www.seasonal.website/seasonal.html) --\> Dagum
+        & Bianconcini (2016)
+
 ```{r}
 seats_dcmp <- us_retail_employment %>%
   model(seats = X_13ARIMA_SEATS(Employed ~ seats())) %>%
@@ -352,13 +516,25 @@ autoplot(seats_dcmp) +
     "Decomposition of total US retail employment using SEATS")
 ```
 
-### STL decomposition 
+**TODO for later: read Dagum & Bianconcini (2016) for details referenced
+at the end of the chapter**
 
-* Seasonal and Trend decomposition using Loess
-* several advantages over classical decomposition, and the SEATS and X-11 methods (any type of seasonality, changing Seasonal, robust to outliers)
-* disadvantages: does not handle trading day or calendar variation automatically, and it only provides facilities for additive decompositions
-* multiplicative decomposition: first taking logs of the data, then back-transforming the components
-* Decompositions that are between additive and multiplicative can be obtained using a Box-Cox transformation of the data with  0<λ<1. A value of  λ=0 gives a multiplicative decomposition while λ=1  gives an additive decomposition
+### STL decomposition
+
+-   Seasonal and Trend decomposition using Loess
+-   several advantages over classical decomposition, and the SEATS and
+    X-11 methods (any type of seasonality, changing Seasonal, robust to
+    outliers)
+-   disadvantages: does not handle trading day or calendar variation
+    automatically, and it only provides facilities for additive
+    decompositions
+-   multiplicative decomposition: first taking logs of the data, then
+    back-transforming the components
+-   Decompositions that are between additive and multiplicative can be
+    obtained using a Box-Cox transformation of the data with 0\<λ\<1. A
+    value of λ=0 gives a multiplicative decomposition while λ=1 gives an
+    additive decomposition
+
 ```{r}
 us_retail_employment %>%
   model(
@@ -369,26 +545,45 @@ us_retail_employment %>%
   autoplot()
 ```
 
-* trend(window = ?) and season(window = ?) control how rapidly the trend-cycle and seasonal components can change --> should be odd numbers
-* Setting the seasonal window to be infinite is equivalent to forcing the seasonal component to be periodic (i.e., identical across years)
-* In an earlier case the default trend window setting produces a trend-cycle component that is too rigid. As a result, signal from the 2008 global financial crisis has leaked into the remainder component --> a shorter trend window improves this (default was 21)
+-   trend(window = ?) and season(window = ?) control how rapidly the
+    trend-cycle and seasonal components can change --\> should be odd
+    numbers
+-   **trend window**: the number of consecutive observations to be used
+    when estimating the trend-cycle (default: trend(window=21)\`).
+-   **season window**: the number of consecutive years to be used in
+    estimating each value in the seasonal component (default:
+    `season(window=13)`).
+-   Setting the seasonal window to be infinite is equivalent to forcing
+    the seasonal component to be periodic (i.e., identical across years)
+-   In an earlier case the default trend window setting produces a
+    trend-cycle component that is too rigid. As a result, signal from
+    the 2008 global financial crisis has leaked into the remainder
+    component --\> a shorter trend window improves this (default was 21)
 
-**TODO for later: read the Cleveland et al. article on STL details referenced at the end of the chapter**
-
+**TODO for later: read the Cleveland et al. (1990) article on STL
+details referenced at the end of the chapter**
 
 ## 4 Time series features
 
-### 4.1 Simple Statistics 
-* compute many features at once
-* `quantile` divide the data into four equal-size sections, each containing 25% of the data
+### 4.1 Simple Statistics
+
+-   compute many features at once
+-   `quantile` divide the data into four equal-size sections, each
+    containing 25% of the data
+
 ```{r}
 tourism %>% features(Trips, quantile)
 ```
 
 ### 4.2 ACF features
-* the sum of the first ten squared autocorrelation coefficients is a useful summary of how much autocorrelation there is in a series, regardless of lag
-* `feat_acf()` function computes a selection of the autocorrelations discussed in the chapter --> read again if needed
-* difference series? --> did not understand --> Chapter 9.1?
+
+-   the sum of the first ten squared autocorrelation coefficients is a
+    useful summary of how much autocorrelation there is in a series,
+    regardless of lag
+-   `feat_acf()` function computes a selection of the autocorrelations
+    discussed in the chapter --\> read again if needed
+-   difference series? --\> did not understand --\> Chapter 9.1?
+
 ```{r}
 tourism %>% features(Trips, feat_acf)
 #> # A tibble: 304 × 10
@@ -401,7 +596,10 @@ tourism %>% features(Trips, feat_acf)
 ```
 
 ### 4.3 STL features
-* `feat_stl()` computes e.g. the strenght of season and strength of trend 
+
+-   `feat_stl()` computes e.g. the strenght of season and strength of
+    trend
+
 ```{r}
 tourism %>%
   features(Trips, feat_stl)
@@ -423,6 +621,7 @@ tourism %>%
 ```
 
 The most seasonal series can also be easily identified and plotted.
+
 ```{r}
 tourism %>%
   features(Trips, feat_stl) %>%
@@ -436,16 +635,21 @@ tourism %>%
 ```
 
 ### 4.4 Other features
---> reference 
---> some discussed in later chapters 
 
-* Hurst coefficient: measure of “long memory” --> significant autocorrelations for many lags
-* `feat_spectral` --> (Shannon) spectral entropy of a time series --> measure of how easy the series is to forecast (0 = easy)
-* `box_pierce`: statistic for testing if a time series is white noise
-* `ljung_box`: statistic for testing if a time series is white noise
+--\> reference --\> some discussed in later chapters
+
+-   Hurst coefficient: measure of "long memory" --\> significant
+    autocorrelations for many lags
+-   `feat_spectral` --\> (Shannon) spectral entropy of a time series
+    --\> measure of how easy the series is to forecast (0 = easy)
+-   `box_pierce`: statistic for testing if a time series is white noise
+-   `ljung_box`: statistic for testing if a time series is white noise
 
 ### 4.5 Exploring
-* All of the features included in the feasts package can be computed in one line like this:
+
+-   All of the features included in the feasts package can be computed
+    in one line like this:
+
 ```{r}
 tourism_features <- tourism %>%
   features(Trips, feature_set(pkgs = "feasts"))
@@ -464,7 +668,9 @@ tourism_features
 #> #   zero_start_prop <dbl>, zero_end_prop <dbl>, lambda_guerrero <dbl>, …
 ```
 
-* Explore with pairwise plots of groups of features, e.g. all features that involve seasonality, along with the Purpose variable:
+-   Explore with pairwise plots of groups of features, e.g. all features
+    that involve seasonality, along with the Purpose variable:
+
 ```{r}
 library(glue)
 tourism_features %>%
@@ -480,9 +686,11 @@ tourism_features %>%
   GGally::ggpairs(mapping = aes(colour = Purpose))
 ```
 
-* handle many more variables with dimension reduction technique such as principal components
-* Details on PCA: Izenman (2008)
-* plot of the first two principal components:
+-   handle many more variables with dimension reduction technique such
+    as principal components
+-   Details on PCA: Izenman (2008)
+-   plot of the first two principal components:
+
 ```{r}
 library(broom)
 pcs <- tourism_features %>%
@@ -495,9 +703,10 @@ pcs %>%
   theme(aspect.ratio = 1)
 ```
 
---> holiday series behave quite differently from the rest of the series
---> the second principal component is distinguishing between holidays and other types of travel
-*  identify **anomalous** time series:
+--\> holiday series behave quite differently from the rest of the series
+--\> the second principal component is distinguishing between holidays
+and other types of travel \* identify **anomalous** time series:
+
 ```{r}
 outliers <- pcs %>%
   filter(.fittedPC1 > 10) %>%
@@ -521,4 +730,3 @@ outliers %>%
   facet_grid(Series ~ ., scales = "free") +
   labs(title = "Outlying time series in PC space")
 ```
-
